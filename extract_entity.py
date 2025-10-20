@@ -101,7 +101,7 @@ def calculate_returns(df_prices: pd.DataFrame) -> np.ndarray:
     return returns.values, returns.columns.tolist()
 
 
-# ===== main.py 개선 버전 =====
+
 def compute_covariance_matrix(return_data: np.ndarray, window_size: int) -> np.ndarray:
     """
     Rolling window 공분산 행렬 계산
@@ -191,4 +191,59 @@ def find_top_correlated_stocks(corr_matrix: np.ndarray,
     
     print(f"{'='*70}\n")
     
+    return top_stocks
+
+
+def analyze_samsung_correlation(date: str,
+                                window_size: int = 252,
+                                top_n: int = 10,
+                                exclude_tickers: Optional[List[str]] = None):
+    """
+    특정 날짜 기준으로 삼성전저와 correlation이 높은 종목 분석
+
+    Parameters:
+    - date: 분석 기준 날짜 (YYYYMMDD 형식)
+    - window_size: 공분산 계산에 사용할 데이터 일수 (기본: 252일 = 1년)
+    - top_n: 상위 N개 종목 (기본: 10개)
+    - exclude_tickers: 제외할 종목 리스트
+
+    Returns:
+    - DataFrame: 상위 종목 정보 (ticker, name, correlation)
+    """
+    print(f"\n{'='*80}")
+    print(f"    삼성전자 Correlation 분석 시작")
+    print(f"    기준 날짜: {date}")
+    print(f"    Window Size: {window_size}일")
+    print(f"{'='*80}\n")
+
+    # Step 1: KOSPI200 종목 가져오기
+    print("[1/5] KOSPI200 종목 로딩...")
+    ticker_list = get_kospi200_tickers(date, exclude_tickers)
+
+    # Step 2: 주가 데이터 수집
+    print("\n[2/5] 주가 데이터 수집...")
+    df_prices = get_price_data(ticker_list, date, window_size)
+
+    # Step 3: 수익률 계산
+    print("\n[3/5] 수익률 계산...")
+    return_data, final_ticker_list = calculate_returns(df_prices)
+
+    # Step 4: 공분산 행렬 계산
+    print("\n[4/5] 공분산 행렬 계산...")
+    cov_matrix = compute_covariance_matrix(return_data, window_size)
+
+    # Step 5: Correlation 행렬로 변환
+    print("\n[5/5] Correlation 계산 및 상위 종목 추출...")
+    corr_matrix = get_correlation_matrix(cov_matrix)
+
+    # 삼성전자와 correlation 높은 종목 찾기
+    top_stocks = find_top_correlated_stocks(
+        corr_matrix=corr_matrix,
+        ticker_list=final_ticker_list,
+        target_ticker="005930",
+        top_n = top_n
+    )
+
+    print("Analysis Complete!\n")
+
     return top_stocks
