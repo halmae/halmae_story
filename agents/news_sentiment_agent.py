@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 
 from config import NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, GOOGLE_API_KEY
 
@@ -255,13 +254,15 @@ Summary:
     )
 
     try:
-        summary_chain = LLMChain(
-            llm=llm,
-            prompt=prompt_template
-        )
-
-        summary = summary_chain.run(title=title, article=content)
-        return summary.strip()
+        # 최신 LCEL 방식 사용
+        chain = prompt_template | llm
+        response = chain.invoke({"title": title, "article": content})
+        
+        # response가 AIMessage 객체인 경우 content 추출
+        if hasattr(response, 'content'):
+            return response.content.strip()
+        else:
+            return str(response).strip()
     
     except Exception as e:
         print(f"요약 중 오류 발생: {e}")
@@ -307,14 +308,17 @@ def sentiment_agent(title:str, summary: str, llm) -> Optional[Dict[str, str]]:
     )
 
     try:
-        sentiment_chain = LLMChain(
-            llm=llm,
-            prompt=prompt_template
-        )
+        # 최신 LCEL 방식 사용
+        chain = prompt_template | llm
+        response = chain.invoke({"title": title, "summary": summary})
+        
+        # response가 AIMessage 객체인 경우 content 추출
+        if hasattr(response, 'content'):
+            result = response.content.strip()
+        else:
+            result = str(response).strip()
 
-        result = sentiment_chain.run(title=title, summary=summary)
-
-        lines = result.strip().split('\n')
+        lines = result.split('\n')
         sentiment = None
         reason = None
 
@@ -384,20 +388,21 @@ def explain_state_variables_agent(
     )
     
     try:
-        explain_chain = LLMChain(
-            llm=llm,
-            prompt=prompt_template
-        )
+        # 최신 LCEL 방식 사용
+        chain = prompt_template | llm
+        response = chain.invoke({
+            "stock_name": stock_name,
+            "date": date,
+            "stock_return": state_variables['return'],
+            "volatility": state_variables['volatility'],
+            "news_summary": news_summary
+        })
         
-        explanation = explain_chain.run(
-            stock_name=stock_name,
-            date=date,
-            stock_return=state_variables['return'],
-            volatility=state_variables['volatility'],
-            news_summary=news_summary
-        )
-        
-        return explanation.strip()
+        # response가 AIMessage 객체인 경우 content 추출
+        if hasattr(response, 'content'):
+            return response.content.strip()
+        else:
+            return str(response).strip()
         
     except Exception as e:
         print(f"설명 생성 중 오류 발생: {e}")
