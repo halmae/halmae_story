@@ -1,1 +1,7 @@
-news_test.ipynb
+__pycache__
+
+simple_samsung
+# config/config.py
+
+.env
+*.ipynb
